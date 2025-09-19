@@ -1,0 +1,37 @@
+services:
+  api:
+    build: { context: ., dockerfile: docker/Dockerfile.api }
+    environment:
+      LLM_BACKEND: "vllm"            # или "ollama"
+      LLM_BASE_URL: "http://vllm:8000"
+      LLM_MODEL: "Qwen/Qwen3-4B-Instruct"
+      CHROMA_HOST: "chroma"
+      CHROMA_PORT: "8000"
+      CHROMA_COLLECTION: "dialogs"
+      TIMEOUT_MS: "800"
+      TEMPERATURE: "0.2"
+      TOP_P: "0.9"
+    depends_on: [chroma, vllm]
+    ports: ["8080:8080"]
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    environment:
+      CHROMA_SERVER_HOST: "0.0.0.0"
+      CHROMA_SERVER_HTTP_PORT: "8000"
+    ports: ["8001:8000"]
+
+  # Пример vLLM с OpenAI-совместимым API
+  vllm:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model Qwen/Qwen3-4B-Instruct
+      --max-model-len 2048
+      --tensor-parallel-size 1
+    ports: ["8000:8000"]
+    # Для GPU раскомментируй:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
